@@ -7,7 +7,7 @@
 
 ## 🏗️ High-Level Architecture (The "6-Agent" Model)
 
-This project is built around a rigorous 6-agent architecture to ensure quality and trust at every layer.
+This project is built around a practical 6-agent architecture to ensure quality and trust at every layer.
 
 ### 1. Product Spec Agent
 *   **Role:** Defines the user experience and "contract" between the UI and Data.
@@ -31,7 +31,7 @@ This project is built around a rigorous 6-agent architecture to ensure quality a
 
 ### 4. Normalization Agent
 *   **Role:** Handling the messy reality of user input.
-*   **Feature:** Simple fuzzy search that maps "fry pan serv" typos to "Pork Belly".
+*   **Feature:** Alias-first ingredient search (prefix/contains) with typo-tolerance fallback for near-miss queries.
 
 ### 5. Content Governance Agent
 *   **Role:** Quality Control.
@@ -84,7 +84,7 @@ We currently host this as a static web app on GitHub Pages.
 *   [x] Static HTML/JS Frontend (No Server).
 *   [x] LocalStorage for saving pantry.
 *   [x] 10 Core Recipes & 40 Ingredients.
-*   [x] Quantity logic & Smart Add.
+*   [x] Quantity logic & Smart Add (with staple yes/no shortcuts).
 *   [x] GitHub Deployment workflow.
 
 ### Phase 2: Cloud & Scale (Next) 🚧

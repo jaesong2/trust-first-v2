@@ -1,7 +1,7 @@
 /**
  * Trust-First V2: Local Data Store
  * Simulates Supabase until backend is connected.
- * All data structures mirror the Postgres schema exactly.
+ * Data structures are aligned to the Postgres schema for migration.
  */
 
 const TFData = (() => {
@@ -346,7 +346,68 @@ const TFData = (() => {
                 matches.push({ ...ing, matchType: 'name' });
             }
         }
+
+        // Finally, typo-tolerance fallback for near-miss short queries
+        // (kept intentionally light to preserve deterministic behavior)
+        if (matches.length < 10 && q.length >= 2) {
+            const scored = [];
+            for (const a of aliases) {
+                if (seen.has(a.ingredientId)) continue;
+                const alias = a.alias.toLowerCase();
+                const distance = levenshteinDistance(alias, q);
+                const threshold = q.length <= 3 ? 1 : 2;
+                if (distance <= threshold) {
+                    const ing = getIngredientById(a.ingredientId);
+                    if (ing) {
+                        scored.push({
+                            ingredient: ing,
+                            alias: a.alias,
+                            distance,
+                        });
+                    }
+                }
+            }
+
+            scored.sort((a, b) => a.distance - b.distance);
+            for (const candidate of scored) {
+                if (seen.has(candidate.ingredient.id)) continue;
+                seen.add(candidate.ingredient.id);
+                matches.push({
+                    ...candidate.ingredient,
+                    matchType: 'fuzzy',
+                    matchedAlias: candidate.alias,
+                });
+                if (matches.length >= 10) break;
+            }
+        }
+
         return matches.slice(0, 10);
+    }
+
+    function levenshteinDistance(a, b) {
+        if (a === b) return 0;
+        if (!a.length) return b.length;
+        if (!b.length) return a.length;
+
+        const rows = a.length + 1;
+        const cols = b.length + 1;
+        const dp = Array.from({ length: rows }, () => new Array(cols).fill(0));
+
+        for (let i = 0; i < rows; i++) dp[i][0] = i;
+        for (let j = 0; j < cols; j++) dp[0][j] = j;
+
+        for (let i = 1; i < rows; i++) {
+            for (let j = 1; j < cols; j++) {
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                dp[i][j] = Math.min(
+                    dp[i - 1][j] + 1,
+                    dp[i][j - 1] + 1,
+                    dp[i - 1][j - 1] + cost
+                );
+            }
+        }
+
+        return dp[a.length][b.length];
     }
 
     function getIngredientsByCategory() {
