@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="냉장고 속 재료로 만들 수 있는 한국 가정식 레시피를 찾아보세요.">
+  <meta name="theme-color" content="#0f0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>냉장고 셰프 · Trust-First Recipe Matcher</title>
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ─── Header ───────────────────────────────────────── -->
+    <header class="app-header">
+      <div class="app-logo">🍳 냉장고 셰프</div>
+      <div class="app-header-actions">
+        <button class="header-btn" onclick="App.navigate('settings')" title="설정">⚙️</button>
+      </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- VIEW: Pantry (Home)                                -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="view-pantry" class="view active">
+      <div class="view-title">내 냉장고</div>
+      <div class="view-subtitle">재료를 추가하고 레시피를 찾아보세요</div>
+
+      <!-- Search -->
+      <div class="search-container">
+        <span class="search-icon">🔍</span>
+        <input
+          id="search-input"
+          class="search-input"
+          type="text"
+          placeholder="재료를 검색하세요 (예: 양파, 김치, 삼겹살)"
+          autocomplete="off"
+        >
+        <div id="search-results" class="search-results"></div>
+      </div>
+
+      <!-- Serving Size -->
+      <div class="serving-selector">
+        <span class="serving-label">🍽️ 몇 인분?</span>
+        <div class="serving-controls">
+          <button class="serving-btn" onclick="App.adjustServings(-1)">−</button>
+          <span id="serving-count" class="serving-count">2인분</span>
+          <button class="serving-btn" onclick="App.adjustServings(1)">+</button>
+        </div>
+      </div>
+
+      <!-- Pantry Items -->
+      <div class="section-label">내 재료</div>
+      <div id="pantry-items" class="pantry-grid"></div>
+
+      <!-- Category Browse (shown when pantry is empty) -->
+      <div id="category-browse" class="category-browse" style="display:none;"></div>
+
+      <!-- Match Button -->
+      <div class="match-btn-container">
+        <button id="match-btn" class="match-btn" onclick="App.runMatch()" disabled>
+          <span class="btn-icon">🍲</span>
+          레시피 찾기
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- VIEW: Results                                      -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="view-results" class="view">
+      <div class="view-title">추천 레시피</div>
+      <div class="view-subtitle">내 재료로 만들 수 있는 요리</div>
+      <div id="results-list" class="recipe-list"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- VIEW: Recipe Detail                                -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="view-detail" class="view">
+      <div id="detail-content"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- VIEW: Settings                                     -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="view-settings" class="view">
+      <div class="view-title">설정</div>
+      <div class="view-subtitle">앱 설정을 관리하세요</div>
+
+      <div class="settings-item" onclick="App.resetOnboarding()">
+        <div class="settings-item-left">
+          <span class="settings-item-icon">📖</span>
+          <span class="settings-item-label">사용법 다시 보기</span>
+        </div>
+        <span class="settings-item-arrow">→</span>
+      </div>
+
+      <div class="settings-item" onclick="App.clearPantry()">
+        <div class="settings-item-left">
+          <span class="settings-item-icon">🗑️</span>
+          <span class="settings-item-label">냉장고 비우기</span>
+        </div>
+        <span class="settings-item-arrow">→</span>
+      </div>
+
+      <div class="settings-item">
+        <div class="settings-item-left">
+          <span class="settings-item-icon">ℹ️</span>
+          <span class="settings-item-label">버전 0.1.0 (Phase 1)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Bottom Navigation ────────────────────────────── -->
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view="pantry">
+        <span class="nav-icon">🧊</span>
+        냉장고
+      </button>
+      <button class="nav-item" data-view="results">
+        <span class="nav-icon">🍲</span>
+        레시피
+      </button>
+      <button class="nav-item" data-view="settings">
+        <span class="nav-icon">⚙️</span>
+        설정
+      </button>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- MODAL: Quantity Picker                             -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="qty-modal" class="qty-modal-overlay">
+      <div class="qty-modal">
+        <div class="qty-modal-header">
+          <div id="qty-modal-ingredient-name" class="qty-modal-title"></div>
+          <button class="qty-modal-close" onclick="App.closeQtyPicker()">✕</button>
+        </div>
+
+        <div class="section-label">수량 선택</div>
+        <div class="qty-presets">
+          <button class="qty-preset-btn" data-value="0.25" onclick="App.selectQtyPreset(0.25)">¼</button>
+          <button class="qty-preset-btn" data-value="0.5" onclick="App.selectQtyPreset(0.5)">½</button>
+          <button class="qty-preset-btn" data-value="1" onclick="App.selectQtyPreset(1)">1</button>
+          <button class="qty-preset-btn" data-value="2" onclick="App.selectQtyPreset(2)">2</button>
+          <button class="qty-preset-btn" data-value="3" onclick="App.selectQtyPreset(3)">3</button>
+          <button class="qty-preset-btn" data-value="4" onclick="App.selectQtyPreset(4)">4</button>
+          <button class="qty-preset-btn" data-value="5" onclick="App.selectQtyPreset(5)">5</button>
+          <button class="qty-preset-btn" data-value="10" onclick="App.selectQtyPreset(10)">10</button>
+        </div>
+
+        <div class="qty-custom-row">
+          <span class="qty-unit-label">직접 입력:</span>
+          <input id="qty-custom-value" class="qty-custom-input" type="number" step="0.25" min="0.25" value="1">
+          <span class="qty-unit-label">개</span>
+        </div>
+
+        <button class="qty-confirm-btn" onclick="App.confirmQty()">추가하기</button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- MODAL: Post-Cooking Update                         -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="post-cooking-modal" class="qty-modal-overlay">
+      <div class="qty-modal">
+        <div id="post-cooking-content"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════ -->
+    <!-- OVERLAY: Onboarding Walkthrough                    -->
+    <!-- ═══════════════════════════════════════════════════ -->
+    <div id="onboarding-overlay" class="onboarding-overlay">
+      <div id="onboarding-card" class="onboarding-card"></div>
+    </div>
+
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/data/store.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
