@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 --------------------------------------
 
 -- Canonical ingredients
-CREATE TABLE ingredient (
+CREATE TABLE IF NOT EXISTS ingredient (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     canonical_name TEXT NOT NULL UNIQUE,
     category TEXT NOT NULL CHECK (category IN (
@@ -22,7 +22,7 @@ CREATE TABLE ingredient (
 );
 
 -- Ingredient aliases for search & normalization
-CREATE TABLE ingredient_alias (
+CREATE TABLE IF NOT EXISTS ingredient_alias (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     ingredient_id UUID REFERENCES ingredient(id) ON DELETE CASCADE NOT NULL,
     alias_name TEXT NOT NULL,
@@ -32,14 +32,14 @@ CREATE TABLE ingredient_alias (
 );
 
 -- Trigram index for fuzzy search
-CREATE INDEX idx_alias_trgm ON ingredient_alias USING GIN (alias_name gin_trgm_ops);
-CREATE INDEX idx_alias_ingredient ON ingredient_alias (ingredient_id);
+CREATE INDEX IF NOT EXISTS idx_alias_trgm ON ingredient_alias USING GIN (alias_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_alias_ingredient ON ingredient_alias (ingredient_id);
 
 --------------------------------------
 -- RECIPE TABLES
 --------------------------------------
 
-CREATE TABLE recipe (
+CREATE TABLE IF NOT EXISTS recipe (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     title_ko TEXT NOT NULL,
@@ -64,11 +64,11 @@ CREATE TABLE recipe (
 );
 
 -- GIN index for fast ingredient overlap queries
-CREATE INDEX idx_recipe_core_ingredients ON recipe USING GIN (core_ingredient_ids);
-CREATE INDEX idx_recipe_qa_status ON recipe (qa_status);
-CREATE INDEX idx_recipe_variant_group ON recipe (variant_group_id) WHERE variant_group_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_recipe_core_ingredients ON recipe USING GIN (core_ingredient_ids);
+CREATE INDEX IF NOT EXISTS idx_recipe_qa_status ON recipe (qa_status);
+CREATE INDEX IF NOT EXISTS idx_recipe_variant_group ON recipe (variant_group_id) WHERE variant_group_id IS NOT NULL;
 
-CREATE TABLE recipe_ingredient (
+CREATE TABLE IF NOT EXISTS recipe_ingredient (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipe_id UUID REFERENCES recipe(id) ON DELETE CASCADE NOT NULL,
     ingredient_id UUID REFERENCES ingredient(id) NOT NULL,
@@ -79,11 +79,11 @@ CREATE TABLE recipe_ingredient (
     UNIQUE(recipe_id, ingredient_id)
 );
 
-CREATE INDEX idx_recipe_ingredient_recipe ON recipe_ingredient (recipe_id);
-CREATE INDEX idx_recipe_ingredient_ingredient ON recipe_ingredient (ingredient_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredient_recipe ON recipe_ingredient (recipe_id);
+CREATE INDEX IF NOT EXISTS idx_recipe_ingredient_ingredient ON recipe_ingredient (ingredient_id);
 
 -- Recipe steps (ordered)
-CREATE TABLE recipe_step (
+CREATE TABLE IF NOT EXISTS recipe_step (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipe_id UUID REFERENCES recipe(id) ON DELETE CASCADE NOT NULL,
     step_number INT NOT NULL,
@@ -97,7 +97,7 @@ CREATE TABLE recipe_step (
 -- SUBSTITUTION TABLE
 --------------------------------------
 
-CREATE TABLE substitution (
+CREATE TABLE IF NOT EXISTS substitution (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     original_ingredient_id UUID REFERENCES ingredient(id) NOT NULL,
     substitute_ingredient_id UUID REFERENCES ingredient(id) NOT NULL,
@@ -112,7 +112,7 @@ CREATE TABLE substitution (
 -- USER TABLES
 --------------------------------------
 
-CREATE TABLE app_user (
+CREATE TABLE IF NOT EXISTS app_user (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     display_name TEXT,
     default_servings INT DEFAULT 2,
@@ -122,7 +122,7 @@ CREATE TABLE app_user (
 );
 
 -- Mutable pantry (single current pantry per user)
-CREATE TABLE pantry_item (
+CREATE TABLE IF NOT EXISTS pantry_item (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES app_user(id) ON DELETE CASCADE NOT NULL,
     ingredient_id UUID REFERENCES ingredient(id) NOT NULL,
@@ -132,10 +132,10 @@ CREATE TABLE pantry_item (
     UNIQUE(user_id, ingredient_id)
 );
 
-CREATE INDEX idx_pantry_user ON pantry_item (user_id);
+CREATE INDEX IF NOT EXISTS idx_pantry_user ON pantry_item (user_id);
 
 -- User staples (always assumed available)
-CREATE TABLE user_staple (
+CREATE TABLE IF NOT EXISTS user_staple (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES app_user(id) ON DELETE CASCADE NOT NULL,
     ingredient_id UUID REFERENCES ingredient(id) NOT NULL,
@@ -144,7 +144,7 @@ CREATE TABLE user_staple (
 );
 
 -- Favorites
-CREATE TABLE favorite (
+CREATE TABLE IF NOT EXISTS favorite (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES app_user(id) ON DELETE CASCADE NOT NULL,
     recipe_id UUID REFERENCES recipe(id) ON DELETE CASCADE NOT NULL,
@@ -153,7 +153,7 @@ CREATE TABLE favorite (
 );
 
 -- User feedback
-CREATE TABLE user_feedback (
+CREATE TABLE IF NOT EXISTS user_feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES app_user(id) NOT NULL,
     recipe_id UUID REFERENCES recipe(id) NOT NULL,
@@ -167,7 +167,7 @@ CREATE TABLE user_feedback (
 -- ANALYTICS EVENTS
 --------------------------------------
 
-CREATE TABLE analytics_event (
+CREATE TABLE IF NOT EXISTS analytics_event (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES app_user(id),
     event_type TEXT NOT NULL,
@@ -175,14 +175,14 @@ CREATE TABLE analytics_event (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX idx_events_type ON analytics_event (event_type);
-CREATE INDEX idx_events_user ON analytics_event (user_id);
+CREATE INDEX IF NOT EXISTS idx_events_type ON analytics_event (event_type);
+CREATE INDEX IF NOT EXISTS idx_events_user ON analytics_event (user_id);
 
 --------------------------------------
 -- GOVERNANCE
 --------------------------------------
 
-CREATE TABLE qa_log (
+CREATE TABLE IF NOT EXISTS qa_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     recipe_id UUID REFERENCES recipe(id),
     action TEXT NOT NULL,
