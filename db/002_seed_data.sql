@@ -1,6 +1,9 @@
 -- Trust-First V2: Seed Data
 -- Korean home-cooking essential ingredients + 10 sample recipes
 
+-- Idempotent reseed: clear seeded tables so this script can be re-run safely.
+TRUNCATE TABLE recipe_step, recipe_ingredient, recipe, ingredient_alias, ingredient RESTART IDENTITY CASCADE;
+
 --------------------------------------
 -- INGREDIENTS
 --------------------------------------
@@ -127,7 +130,6 @@ INSERT INTO ingredient_alias (ingredient_id, alias_name, alias_type, locale) VAL
 ('d0000001-0000-0000-0000-000000000001', '쌀밥', 'search', 'ko'),
 -- 호박
 ('b0000001-0000-0000-0000-000000000006', '호박', 'search', 'ko'),
-('b0000001-0000-0000-0000-000000000006', '애호박', 'search', 'ko'),
 -- 배추
 ('b0000001-0000-0000-0000-000000000007', '배추', 'search', 'ko'),
 -- 콩나물
